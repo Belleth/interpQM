@@ -1,5 +1,5 @@
 # interpQM
-R scripts for the homogenization of snow depth time series
+R scripts for the homogenization of snow depth time series.
 
 Welcome to interpQM, a tool for homogenization and analysis of daily snow depth time series.
 
