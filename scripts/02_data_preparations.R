@@ -1,6 +1,6 @@
 # ___________________________________________________________________
 # ___________________________________________________________________
-# interpQM homogenisation of snow depth data
+# interpQM homogenization of snow depth data
 # 01_data preparation ----
 # Author: Gernot Resch
 # Date: 29.02.2024
@@ -22,7 +22,7 @@ source("homogenization/config.ini")
 distance_horizontal <- as.numeric(distance_horizontal)
 distance_vertical <- as.numeric(distance_vertical)
 
-# load stations to be homogenised
+# load stations to be homogenized
 candidate_stations <- read_csv(
   "homogenization/data/01_original/candidate_stations.csv",
   show_col_types = FALSE,
@@ -201,7 +201,7 @@ distances <- left_join(
 ) |>
   group_by(id_candidate) |>
   filter(
-    # limit to stations to be homogenised
+    # limit to stations to be homogenized
     id_candidate %in% candidate_stations,
     # limit to horizontal distance from interpqm.ini
     distance_horizontal <= !!distance_horizontal,
@@ -232,7 +232,7 @@ rm(
 # preparations for correlation-loop ----
 # ___________________________________________________________________
 
-# list with a table with information for each station to be homogenised
+# list with a table with information for each station to be homogenized
 network_builder <- vector(
   mode = "list",
   length(candidate_stations)
@@ -360,14 +360,16 @@ network_size |>
 
 # load breakpoint-data
 breakpoints <- read_csv(
-  "homogenization/data/01_original/detected_breaks.csv",
+  "homogenization/data/01_original/detected_breakpoints.csv",
   show_col_types = FALSE
 ) |>
   # make sure station_ids are character and year of break is numeric
   mutate(
     station_id = as.character(station_id),
     hyear = as.numeric(hyear)
-  )
+  ) |> 
+  # make sure stations with more than one break are arranged next to each other
+  arrange(station_id, hyear)
 
 # load network_size for comparing with stations that have breaks
 network_size <- read_csv(
@@ -387,3 +389,11 @@ stations_not_homogenizable <- anti_join(
 # export stations that are not homogenizable
 stations_not_homogenizable |>
   write_csv(file = "homogenization/data/02_processed/stations_not_homogenizable.csv")
+
+# get rid of non-homogenizable stations in the breakpoint-file
+breakpoints %<>%
+  filter(station_id %in% network_size$id_candidate)
+
+# export cleaned breakpoint-file
+breakpoints |>
+  write_csv(file = "homogenization/data/02_processed/breakpoints.csv")

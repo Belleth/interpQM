@@ -6,10 +6,10 @@ Welcome to interpQM, a tool for homogenization and analysis of daily snow depth 
 The tool is currently being completely rewritten, the parts will be published here as soon as they are finished and tested.
 
 ## Technical details
-If you are interested, technical details on the adjustment algorithm and its performance can be found here:
+Technical details on the adjustment algorithm and its performance can be found here:
 https://rmets.onlinelibrary.wiley.com/doi/full/10.1002/joc.7742
 
-A comparison on the impact of snow depth time series-homogenisation on Swiss time series can be found here:
+A comparison on the impact of snow depth time series-homogenization on Swiss time series can be found here:
 https://tc.copernicus.org/articles/17/653/2023/
 
 ## Test data

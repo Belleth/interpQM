@@ -95,7 +95,7 @@ f_create_empty_text_file <- function(text_file) {
 
 # create empty files
 f_create_empty_text_file("homogenization/data/01_original/candidate_stations.csv")
-f_create_empty_text_file("homogenization/data/01_original/detected_breaks.csv")
+f_create_empty_text_file("homogenization/data/01_original/detected_breakpoints.csv")
 f_create_empty_text_file("homogenization/data/01_original/meta.csv")
 f_create_empty_text_file("homogenization/data/01_original/reference_stations_manual.csv")
 
@@ -110,7 +110,7 @@ content <- "########################################
 # wmean (weighted mean of network)
 # +++++ plots
 # yes / no
-# +++++ InterpQMversion: name of version in qmapping.list
+# +++++ qmapping: percentile-boundaries for quantile-matching
 # +++++ correlation_weight: weighting of wmean (linear, exponential)
 # snow_file: name of the snow-file in the 01_original-folder
 ########################################
@@ -119,7 +119,7 @@ distance_horizontal = \"100\"
 distance_vertical = \"300\"
 reference = \"wmean\"
 plots = \"yes\"
-InterpQMversion = \"0.95\"
+qmapping = \"0.95\"
 correlation_weight = \"linear\""
 
 # Write content to file
