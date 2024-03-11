@@ -363,13 +363,14 @@ breakpoints <- read_csv(
   "homogenization/data/01_original/detected_breakpoints.csv",
   show_col_types = FALSE
 ) |>
-  # make sure station_ids are character and year of break is numeric
+  # make sure candidate_ids are character and year of break is numeric
   mutate(
-    station_id = as.character(station_id),
+    id_candidate = as.character(station_id),
     hyear = as.numeric(hyear)
   ) |> 
+  select(id_candidate, hyear) |> 
   # make sure stations with more than one break are arranged next to each other
-  arrange(station_id, hyear)
+  arrange(id_candidate, hyear)
 
 # load network_size for comparing with stations that have breaks
 network_size <- read_csv(
@@ -382,7 +383,7 @@ network_size <- read_csv(
 stations_not_homogenizable <- anti_join(
   network_size,
   breakpoints,
-  by = c("id_candidate" = "station_id")
+  by = "id_candidate"
 ) |>
   select(id_candidate)
 
@@ -392,7 +393,9 @@ stations_not_homogenizable |>
 
 # get rid of non-homogenizable stations in the breakpoint-file
 breakpoints %<>%
-  filter(station_id %in% network_size$id_candidate)
+  filter(id_candidate %in% network_size$id_candidate) |> 
+  # get rid of possible double-entries
+  distinct_all()
 
 # export cleaned breakpoint-file
 breakpoints |>
