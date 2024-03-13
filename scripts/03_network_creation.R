@@ -10,7 +10,7 @@
 
 rm(list = ls())
 
-library(tidyverse, quietly = TRUE)
+library(tidyverse)
 
 # load functions
 source("scripts/f_generic.R")

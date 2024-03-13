@@ -11,6 +11,7 @@
 rm(list = ls())
 
 library(tidyverse)
+library(magrittr)
 
 # ___________________________________________________________________
 # load data and configuration files ----
@@ -52,12 +53,10 @@ for (i in seq_along(candidate_stations)) {
     filter(id == candidate) |>
     rename(id_candidate = id) |>
     mutate(
-            hyear <- 
       snow_depth_reference = HS_reference |>
         filter(id_candidate == candidate) %$%
         snow_depth_reference
-    ) |>
-    as_tibble()
+    )
 
   # iterate through breakpoints and get quantiles of candidate and reference station
   breakpoints_candidate <- breakpoints |>
@@ -68,22 +67,46 @@ for (i in seq_along(candidate_stations)) {
   for (b in seq_along(breakpoints_candidate)) {
     # select breakpoint
     breakpoint <- breakpoints_candidate[b]
+
+    # ___________________________________________________________________
+    # get quantiles of candidate and reference station before and after breakpoint ----
+    # ___________________________________________________________________
     
-    # get quantiles of candidate and reference station before and after breakpoint
-    quantiles_candidate_after <- data |> 
-      filter(hyear > breakpoint) |>
-      pull(snow_depth) |>
+    # get quantiles of candidate after break
+    quantiles_candidate_after <- data |>
+      filter(hyear >= breakpoint) %$%
       quantile(
+        snow_depth_orig,
         probs = c(qmapping),
         na.rm = TRUE
-      ) |>
-      as_tibble() |>
-      rename(
-        quantile_10 = `10%`,
-        quantile_50 = `50%`,
-        quantile_90 = `90%`
       )
     
+    # get quantiles of candidate before break
+    quantiles_candidate_before <- data |> 
+      filter(hyear < breakpoint) %$%
+      quantile(
+        snow_depth_orig,
+        probs = c(qmapping),
+        na.rm = TRUE
+      )
+    
+    # get quantiles of reference after break
+    quantiles_reference_after <- data |>
+      filter(hyear >= breakpoint) %$%
+      quantile(
+        snow_depth_reference,
+        probs = c(qmapping),
+        na.rm = TRUE
+      )
+    
+    # get quantiles of reference before break
+    quantiles_reference_before <- data |>
+      filter(hyear < breakpoint) %$%
+      quantile(
+        snow_depth_reference,
+        probs = c(qmapping),
+        na.rm = TRUE
+      )
     
     
     

@@ -132,9 +132,19 @@ HS <- left_join(
   by = c("id", "date")
 )
 
-# order HS by id
-HS %<>%
-  arrange(id, date)
+# calculate hydrological year for each date (1999 = 1.10.1998 - 30.09.1999)
+HS <- HS |> 
+  mutate(
+    month = month(date),
+    year = year(date),
+    hyear = if_else(month <= 9, year - 1, year)
+  ) |> 
+  # get rid of month and year, because they are not needed anymore
+  select(-month, -year) |> 
+  # sort output by id and date
+  arrange(id, date) |> 
+  # turn into tibble
+  as_tibble()
 
 # export correct snowdepth file to disk
 HS |>
