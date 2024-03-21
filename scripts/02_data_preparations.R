@@ -15,14 +15,34 @@ library(geosphere)
 library(magrittr)
 
 # load functions
-source("scripts/f_generic.R")
+source("scripts/functions.R")
 
-# load information for horizontal and vertical distances
+# load config-file
 source("homogenization/config.ini")
+
+# make sure vertical and horizontal distances are numeric
 distance_horizontal <- as.numeric(distance_horizontal)
 distance_vertical <- as.numeric(distance_vertical)
 
-# load stations to be homogenized
+# ___________________________________________________________________
+# prepare interquantile subset-file ----
+# ___________________________________________________________________
+
+# change into vector and make numeric for further use
+ interquantile_subset %<>%
+  strsplit(",") %<>%
+  unlist() %<>%
+  as.numeric()
+
+# export to disk
+interquantile_subset |>
+  save(file = "homogenization/data/02_processed/interquantile_subset.RData")
+
+
+# ___________________________________________________________________
+# load stations to be homogenized ----
+# ___________________________________________________________________
+
 candidate_stations <- read_csv(
   "homogenization/data/01_original/candidate_stations.csv",
   show_col_types = FALSE,
@@ -54,7 +74,7 @@ meta %<>%
 # ___________________________________________________________________
 # # load snow data ----
 # ___________________________________________________________________
-# import snow data using the file-name from interpqm.ini
+# import snow data using the file-name from config.ini
 HS_import <- read_csv(
   paste0("homogenization/data/01_original/", snow_file),
   show_col_types = FALSE
@@ -133,16 +153,16 @@ HS <- left_join(
 )
 
 # calculate hydrological year for each date (1999 = 1.10.1998 - 30.09.1999)
-HS <- HS |> 
+HS <- HS |>
   mutate(
     month = month(date),
     year = year(date),
     hyear = if_else(month <= 9, year - 1, year)
-  ) |> 
+  ) |>
   # get rid of month and year, because they are not needed anymore
-  select(-month, -year) |> 
+  select(-month, -year) |>
   # sort output by id and date
-  arrange(id, date) |> 
+  arrange(id, date) |>
   # turn into tibble
   as_tibble()
 
@@ -176,7 +196,7 @@ distances_horizontal <- expand.grid(
 ) |>
   filter(id_candidate != id_reference) |>
   mutate(
-    distance_horizontal = f_horizontal_distance(
+    distance_horizontal = horizontal_distance(
       meta$lon[id_reference], meta$lat[id_reference],
       meta$lon[id_candidate], meta$lat[id_candidate]
     )
@@ -193,7 +213,7 @@ distances_vertical <- expand.grid(
 ) |>
   filter(id_candidate != id_reference) |>
   mutate(
-    distance_vertical = f_vertical_distance(
+    distance_vertical = vertical_distance(
       meta$elevation[id_candidate],
       meta$elevation[id_reference]
     )
@@ -377,8 +397,8 @@ breakpoints <- read_csv(
   mutate(
     id_candidate = as.character(station_id),
     hyear = as.numeric(hyear)
-  ) |> 
-  select(id_candidate, hyear) |> 
+  ) |>
+  select(id_candidate, hyear) |>
   # make sure stations with more than one break are arranged next to each other
   arrange(id_candidate, hyear)
 
@@ -403,7 +423,7 @@ stations_not_homogenizable |>
 
 # get rid of non-homogenizable stations in the breakpoint-file
 breakpoints %<>%
-  filter(id_candidate %in% network_size$id_candidate) |> 
+  filter(id_candidate %in% network_size$id_candidate) |>
   # get rid of possible double-entries
   distinct_all()
 

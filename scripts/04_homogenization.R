@@ -1,10 +1,9 @@
 # ___________________________________________________________________
 # ___________________________________________________________________
 # interpQM homogenization of snow depth data
-# 03_homogenization ----
 # Homogenization
 # Author: Gernot Resch
-# Date: 07.03.2024
+# Date: 13.03.2024
 # ___________________________________________________________________
 # ___________________________________________________________________
 
@@ -12,6 +11,8 @@ rm(list = ls())
 
 library(tidyverse)
 library(magrittr)
+
+source("scripts/functions.R")
 
 # ___________________________________________________________________
 # load data and configuration files ----
@@ -31,6 +32,9 @@ breakpoints <- read_csv(
   "homogenization/data/02_processed/breakpoints.csv",
   show_col_types = FALSE
 )
+
+# load vector "interquantile_subset" that contains the quantiles for the interquantile subset
+load("homogenization/data/02_processed/interquantile_subset.RData")
 
 # ___________________________________________________________________
 # Homogenization ----
@@ -65,50 +69,31 @@ for (i in seq_along(candidate_stations)) {
 
   b <- 1
   for (b in seq_along(breakpoints_candidate)) {
+    # ___________________________________________________________________
+    # interquantile subsets ----
+    # of candidate and reference station before and after breakpoint
+    # ___________________________________________________________________
+
     # select breakpoint
     breakpoint <- breakpoints_candidate[b]
 
+    # calculate interquantile subsets for candidate and reference time series
+    iqs_candidate <- calculate_iqs(
+      data, 
+      "snow_depth_orig", 
+      interquantile_subset, 
+      breakpoint
+      )
+    
+    iqs_reference <- calculate_iqs(
+      data, 
+      "snow_depth_reference", 
+      interquantile_subset, 
+      breakpoint
+      )
+
     # ___________________________________________________________________
-    # get quantiles of candidate and reference station before and after breakpoint ----
+    # Calculate values for adjustment formula ----
     # ___________________________________________________________________
-    
-    # get quantiles of candidate after break
-    quantiles_candidate_after <- data |>
-      filter(hyear >= breakpoint) %$%
-      quantile(
-        snow_depth_orig,
-        probs = c(qmapping),
-        na.rm = TRUE
-      )
-    
-    # get quantiles of candidate before break
-    quantiles_candidate_before <- data |> 
-      filter(hyear < breakpoint) %$%
-      quantile(
-        snow_depth_orig,
-        probs = c(qmapping),
-        na.rm = TRUE
-      )
-    
-    # get quantiles of reference after break
-    quantiles_reference_after <- data |>
-      filter(hyear >= breakpoint) %$%
-      quantile(
-        snow_depth_reference,
-        probs = c(qmapping),
-        na.rm = TRUE
-      )
-    
-    # get quantiles of reference before break
-    quantiles_reference_before <- data |>
-      filter(hyear < breakpoint) %$%
-      quantile(
-        snow_depth_reference,
-        probs = c(qmapping),
-        na.rm = TRUE
-      )
-    
-    
-    
   }
 }

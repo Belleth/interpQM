@@ -13,7 +13,7 @@ rm(list = ls())
 library(tidyverse)
 
 # load functions
-source("scripts/f_generic.R")
+source("scripts/functions.R")
 
 # load config-file
 source("homogenization/config.ini")
@@ -55,11 +55,11 @@ for (i in seq_along(candidate_stations)) {
   # calculate weights for every reference station using the correlation
   weighted_mean <- if (correlation_weight == "linear") {
     round(
-      f_norm_min_max(network$correlation) * 100
+      norm_min_max(network$correlation) * 100
     )
   } else if (correlation_weight == "exponential") {
     round(
-      f_norm_min_max(network$correlation) * 10
+      norm_min_max(network$correlation) * 10
     )^2
   }
 
