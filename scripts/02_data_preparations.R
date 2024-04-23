@@ -29,10 +29,16 @@ distance_vertical <- as.numeric(distance_vertical)
 # ___________________________________________________________________
 
 # change into vector and make numeric for further use
- interquantile_subset %<>%
-  strsplit(",") %<>%
+interquantile_subset %<>%
+  str_split(",") %<>%
   unlist() %<>%
-  as.numeric()
+  as.numeric() %<>%
+  # select all but the last element of the whole vector
+  tail(-1) %<>%
+  # and multiply by 100 to get percentage values
+  { . * 100 } %<>%
+  # sort it to avoid errors
+  sort()
 
 # export to disk
 interquantile_subset |>
@@ -157,14 +163,15 @@ HS <- HS |>
   mutate(
     month = month(date),
     year = year(date),
-    hyear = if_else(month <= 9, year - 1, year)
+    hyear = if_else(month <= 9, year - 1, year) |> 
+      as.integer()
   ) |>
   # get rid of month and year, because they are not needed anymore
   select(-month, -year) |>
   # sort output by id and date
   arrange(id, date) |>
   # turn into tibble
-  as_tibble()
+  as_tibble() 
 
 # export correct snowdepth file to disk
 HS |>

@@ -80,7 +80,7 @@ distance_horizontal = \"100\"
 distance_vertical = \"300\"
 reference = \"wmean\"
 plots = \"yes\"
-interquantile_subset = \"0, 0.95, 1\"
+interquantile_subset = \"0, 0.94, 1\"
 correlation_weight = \"linear\""
 
 # Write content to file

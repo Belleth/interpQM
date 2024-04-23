@@ -11,6 +11,7 @@
 rm(list = ls())
 
 library(tidyverse)
+library(magrittr)
 
 # load functions
 source("scripts/functions.R")
@@ -162,6 +163,12 @@ HS_manual <- HS |>
 HS_reference <- bind_rows(
   HS_reference, HS_manual
 )
+
+# change possibly non-integer to integer
+HS_reference %<>%
+  mutate(
+    snow_depth_reference = as.integer(snow_depth_reference)
+  )
 
 # export
 HS_reference |>
