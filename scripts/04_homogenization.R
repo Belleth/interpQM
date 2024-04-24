@@ -21,7 +21,7 @@ source("scripts/functions.R")
 # load reference time series
 load("homogenization/data/02_processed/HS_reference.RData")
 
-# load time series
+# load snow depth time series
 load("homogenization/data/02_processed/HS.RData")
 
 # load configuration file
@@ -159,11 +159,11 @@ for (i in seq_along(candidate_stations)) {
     df_original,
     df_reference,
     by = c("break_steps", "iqs")
-  )
+  ) |>
+    na.omit()
 
   # cleanup
   rm(df_original, df_reference)
-
 
   # separate into adjustment values after break and breaks
   df_adjustment_after <- df_adjustment_values |>
@@ -246,21 +246,44 @@ for (i in seq_along(candidate_stations)) {
     rm(first_midpoint, other_midpoints, m)
 
     # Interpolate the adjustment factor along the percentiles
-    adjustment_vector_lin <- approx(
-      x = midpoints,
-      y = adjustment_vector,
-      xout = 1:100,
-      method = "linear"
-    )$y
+    percentile_length <- length(unique(data$percentile_original))
+    if (percentile_length > 100) {
+      percentile_length <- 100
+    }
+
+    # if > 100 unique snow depth values, interpolate along the percentiles
+    if (percentile_length == 100) {
+      adjustment_vector_lin <- approx(
+        x = midpoints,
+        y = adjustment_vector,
+        xout = 1:percentile_length,
+        method = "linear"
+      )$y
+      # if not, reduce the vector to the length of the unique snow depth values
+      # and interpolate accordingly
+    } else {
+      midpoints <- floor(
+        (percentile_length / 100) * midpoints
+      )
+
+      adjustment_vector_lin <- approx(
+        x = midpoints,
+        y = adjustment_vector,
+        xout = 1:percentile_length,
+        method = "linear"
+      )$y
+    }
+
 
     # fillup head and tail of the linear adjustment-vector
     adjustment_vector_lin[1:midpoints[1]] <- first(adjustment_vector)
-    adjustment_vector_lin[midpoints[length(midpoints)]:100] <- last(adjustment_vector)
+    # fillup between the last midpoint and the end of the vector
+    adjustment_vector_lin[midpoints[length(midpoints)]:percentile_length] <- last(adjustment_vector)
 
     # and turn into tibble for joining with the dataset
     df_adjustment_lin <- tibble(
       break_steps = break_steps[b],
-      percentile_original = 1:100,
+      percentile_original = 1:percentile_length,
       adjustment_factor = adjustment_vector_lin
     )
 
@@ -286,21 +309,23 @@ for (i in seq_along(candidate_stations)) {
       )
     )
 
-  # reset 0-values to 0 (remembered from prior homogenization steps)
+  # ___________________________________________________________________
+  # reset 0-values ----
+  # ___________________________________________________________________
+  # reset values that where 0 prior the homogenization to 0
   data$snow_depth_orig[remember_zero_orig] <- 0
   data$snow_depth_homogenized[remember_zero_orig] <- 0
   data$snow_depth_reference[remember_zero_reference] <- 0
-  
+
   # ___________________________________________________________________
   # combine homogenized data ----
   # ___________________________________________________________________
-  
+
   if (i == 1) {
     HS_homogenized <- data
   } else {
     HS_homogenized <- bind_rows(HS_homogenized, data)
   }
-
 }
 
 # ___________________________________________________________________
@@ -311,7 +336,7 @@ HS_homogenized |>
     file = "homogenization/data/03_homogenized/HS_homogenized.csv"
   )
 
-HS_homogenized |> 
+HS_homogenized |>
   save(
     file = "homogenization/data/03_homogenized/HS_homogenized.RData"
   )
