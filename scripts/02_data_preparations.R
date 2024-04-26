@@ -1,9 +1,9 @@
 # ___________________________________________________________________
 # ___________________________________________________________________
-# interpQM homogenization of snow depth data
-# 01_data preparation ----
+# interpQM: Homogenization of snow depth data
+# 02_data preparation ----
 # Author: Gernot Resch
-# Date: 29.04.2024
+# Date: 26.04.2024
 # ___________________________________________________________________
 # ___________________________________________________________________
 
@@ -450,21 +450,3 @@ breakpoints %<>%
 # export cleaned breakpoint-file
 breakpoints |>
   write_csv(file = "homogenization/data/02_processed/breakpoints.csv")
-
-
-# ___________________________________________________________________
-# export non-homogenizable stations ----
-# ___________________________________________________________________
-
-# compare network_size with breakpoints
-# for checking, if there are stations that are not homogenizable
-# stations_not_homogenizable <- anti_join(
-#   network_size,
-#   breakpoints,
-#   by = "id_candidate"
-# ) |>
-#   select(id_candidate)
-#
-# # export stations that are not homogenizable
-# stations_not_homogenizable |>
-#   write_csv(file = "homogenization/data/02_processed/stations_not_homogenizable.csv")

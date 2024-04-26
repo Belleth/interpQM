@@ -1,15 +1,15 @@
 # ___________________________________________________________________
 # ___________________________________________________________________
-# interpQM homogenization of snow depth data
-# 02_network_creation ----
-# already prepared networks are put together
+# interpQM: Homogenization of snow depth data
+# 03_reference_calculation ----
 # Author: Gernot Resch
-# Date: 29.02.2024
+# Date: 26.04.2024
 # ___________________________________________________________________
 # ___________________________________________________________________
 
 rm(list = ls())
 
+# load packages
 library(tidyverse)
 library(magrittr)
 

@@ -1,7 +1,7 @@
 # ___________________________________________________________________
 # ___________________________________________________________________
-# interpQM homogenization of snow depth data
-# Homogenization
+# interpQM: Homogenization of snow depth data
+# 04_homogenization
 # Author: Gernot Resch
 # Date: 26.04.2024
 # ___________________________________________________________________
@@ -9,9 +9,11 @@
 
 rm(list = ls())
 
+# load packages
 library(tidyverse)
 library(magrittr)
 
+# load functions
 source("scripts/functions.R")
 
 # ___________________________________________________________________

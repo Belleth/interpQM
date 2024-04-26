@@ -1,16 +1,17 @@
 # ___________________________________________________________________
 # ___________________________________________________________________
-# interpQM
+# interpQM: Homogenization of snow depth data
 # 01_setup ----
 # Setup the environment for a new homogenzation-run
 # Check library-dependencies, create file-structure and config-file
 # Author: Gernot Resch
-# Date: 08.03.2024
+# Date: 26.04.2024
 # ___________________________________________________________________
 # ___________________________________________________________________
 
 rm(list = ls())
 
+# load functions
 source("scripts/functions.R")
 
 # ___________________________________________________________________
@@ -22,6 +23,7 @@ install_if_missing("geosphere")
 install_if_missing("tidyverse")
 install_if_missing("readr")
 install_if_missing("magrittr")
+install_if_missing("ggtext")
 
 message("All necessary packages are installed.")
 
