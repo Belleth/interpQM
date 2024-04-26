@@ -45,6 +45,7 @@ dir.create("homogenization/data/01_original")
 dir.create("homogenization/data/02_processed")
 dir.create("homogenization/data/03_homogenized")
 dir.create("homogenization/plots")
+dir.create("homogenization/plots/mean")
 
 # check if directory-structure was created
 if (file.exists("homogenization")) {
