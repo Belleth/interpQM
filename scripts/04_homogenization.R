@@ -3,7 +3,7 @@
 # interpQM homogenization of snow depth data
 # Homogenization
 # Author: Gernot Resch
-# Date: 09.04.2024
+# Date: 26.04.2024
 # ___________________________________________________________________
 # ___________________________________________________________________
 
@@ -35,7 +35,7 @@ breakpoints <- read_csv(
 
 # load vector "interquantile_subset" that contains the quantiles for the interquantile subset
 load("homogenization/data/02_processed/interquantile_subset.RData")
-
+interquantile_subset_import <- interquantile_subset
 # ___________________________________________________________________
 # Homogenization ----
 # Homogenize every candidate station
@@ -75,7 +75,10 @@ for (i in seq_along(candidate_stations)) {
     filter(id_candidate == candidate) %$%
     hyear
 
-  # define time-steps of different breaks
+  # ___________________________________________________________________
+  # define time-steps of different breaks "break_steps" ----
+  # ___________________________________________________________________
+
   # A = after all breaks,
   # B1 - Bn = first break to last break (first break is the most recent one)
   data %<>%
@@ -120,33 +123,97 @@ for (i in seq_along(candidate_stations)) {
       }
     )
 
-  # calculate percentiles per time_step (breaks)
+
+  # ___________________________________________________________________
+  # check how many different observations are per time step ----
+  # this is important for the adjustment calculation, because if
+  # there are not enough observations, the adjustment will be
+  # calculated with an interpolation of less than 100 values (and not with
+  # percentiles)
+  # ___________________________________________________________________
+
+  percentile_check <- data |>
+    filter(!is.na(snow_depth_orig)) |>
+    group_by(id_candidate, break_steps) |>
+    summarise(
+      unique_snow_observations = n_distinct(snow_depth_orig),
+      unique_years = n_distinct(hyear),
+      .groups = "drop"
+    )
+
+  # create a dataframe for the export of the percentile_check
+  # it contains all unique years and observations per break
+  # of all candidate stations
+  if (i == 1) {
+    percentile_export <- percentile_check
+  } else {
+    percentile_export <- bind_rows(
+      percentile_export,
+      percentile_check
+    )
+  }
+
+  # get the smallest number of unique observations per time step
+  unique_snow_minimum <- percentile_check$unique_snow_observations |>
+    min()
+
+  # ___________________________________________________________________
+  # adapt iqs-subset if necessary ----
+  # ___________________________________________________________________
+  # adapt the iqs-subset to the number of unique snow observations in percentile_check.
+  # This is necessary, if there are less than 100 percentiles available.
+
+  # reset interquantile subset
+  interquantile_subset <- interquantile_subset_import
+  ntile_length <- 100
+
+  if (unique_snow_minimum < 100) {
+    interquantile_subset <- floor((interquantile_subset / 100) * unique_snow_minimum)
+    ntile_length <- unique_snow_minimum
+  }
+
+  # ___________________________________________________________________
+  # calculate percentiles per time_step (breaks) ----
+  # ___________________________________________________________________
+
+  # if (unique_snow_minimum >= 100) {
   data %<>%
     group_by(break_steps) %<>%
     mutate(
       # percentiles in the original time series
-      percentile_original = ntile(snow_depth_orig, 100),
+      percentile_original = ntile(
+        snow_depth_orig,
+        # use the smallest number of unique snow observations here.
+        ntile_length
+      ),
       # percentiles in the reference time series
-      percentile_reference = ntile(snow_depth_reference, 100),
+      percentile_reference = ntile(
+        snow_depth_reference,
+        ntile_length
+      ),
       iqs_original = iqs_subset_calculation(snow_depth_orig, interquantile_subset),
       iqs_reference = iqs_subset_calculation(snow_depth_reference, interquantile_subset)
     ) %<>%
     ungroup()
+  # }
 
   # ___________________________________________________________________
   # calculate dataframe with values for adjustment calculation ----
   # ___________________________________________________________________
   # original time series
   df_original <- data |>
+    filter(!is.na(iqs_original)) |>
     group_by(break_steps, iqs_original) |>
     summarise(
-      C = median(snow_depth_orig, na.rm = T),
+      C = median(snow_depth_orig, na.rm = T) |>
+        round(),
       .groups = "drop"
     ) |>
     rename(iqs = iqs_original)
 
   # reference time series
   df_reference <- data |>
+    filter(!is.na(iqs_reference)) |>
     group_by(break_steps, iqs_reference) |>
     summarise(
       R = median(snow_depth_reference, na.rm = T),
@@ -159,8 +226,7 @@ for (i in seq_along(candidate_stations)) {
     df_original,
     df_reference,
     by = c("break_steps", "iqs")
-  ) |>
-    na.omit()
+  )
 
   # cleanup
   rm(df_original, df_reference)
@@ -189,24 +255,24 @@ for (i in seq_along(candidate_stations)) {
     a <- 1
     for (a in seq_along(adjustment_vector)) {
       Ca <- df_adjustment_after |>
-        filter(iqs == interquantile_subset[a]) |>
+        filter(iqs == !!interquantile_subset[a]) |>
         pull(C)
 
       Ra <- df_adjustment_after |>
-        filter(iqs == interquantile_subset[a]) |>
+        filter(iqs == !!interquantile_subset[a]) |>
         pull(R)
 
       Cb <- df_adjustment_breaks |>
         filter(
-          break_steps == break_steps[b],
-          iqs == interquantile_subset[a]
+          break_steps == !!break_steps[b],
+          iqs == !!interquantile_subset[a]
         ) |>
         pull(C)
 
       Rb <- df_adjustment_breaks |>
         filter(
-          break_steps == break_steps[b],
-          iqs == interquantile_subset[a]
+          break_steps == !!break_steps[b],
+          iqs == !!interquantile_subset[a]
         ) |>
         pull(R)
 
@@ -246,62 +312,63 @@ for (i in seq_along(candidate_stations)) {
     rm(first_midpoint, other_midpoints, m)
 
     # Interpolate the adjustment factor along the percentiles
-    percentile_length <- length(unique(data$percentile_original))
-    if (percentile_length > 100) {
-      percentile_length <- 100
-    }
-
-    # if > 100 unique snow depth values, interpolate along the percentiles
-    if (percentile_length == 100) {
-      adjustment_vector_lin <- approx(
-        x = midpoints,
-        y = adjustment_vector,
-        xout = 1:percentile_length,
-        method = "linear"
-      )$y
-      # if not, reduce the vector to the length of the unique snow depth values
-      # and interpolate accordingly
-    } else {
-      midpoints <- floor(
-        (percentile_length / 100) * midpoints
-      )
-
-      adjustment_vector_lin <- approx(
-        x = midpoints,
-        y = adjustment_vector,
-        xout = 1:percentile_length,
-        method = "linear"
-      )$y
-    }
-
+    adjustment_vector_lin <- approx(
+      x = midpoints,
+      y = adjustment_vector,
+      xout = 1:ntile_length,
+      method = "linear"
+    )$y
 
     # fillup head and tail of the linear adjustment-vector
     adjustment_vector_lin[1:midpoints[1]] <- first(adjustment_vector)
     # fillup between the last midpoint and the end of the vector
-    adjustment_vector_lin[midpoints[length(midpoints)]:percentile_length] <- last(adjustment_vector)
+    adjustment_vector_lin[midpoints[length(midpoints)]:ntile_length] <- last(adjustment_vector)
 
-    # and turn into tibble for joining with the dataset
-    df_adjustment_lin <- tibble(
-      break_steps = break_steps[b],
-      percentile_original = 1:percentile_length,
+    # join data and adjustment-factors (each percentile gets its own adjustment factor)
+    # only for the corresponding break_time
+
+    df_join <- tibble(
+      break_steps = !!break_steps[b],
+      percentile_original = 1:ntile_length,
       adjustment_factor = adjustment_vector_lin
     )
 
-    # join data and adjustment-factors (each percentile gets its own adjustment factor)
-    data <- left_join(
-      data,
-      df_adjustment_lin,
-      by = c("break_steps", "percentile_original")
-    )
+    # combine all adjustment factors.
+    # This "df_adjustment_candidate" will be used later for joining with the dataset.
+    if (b == 1) {
+      df_adjustment_candidate <- df_join
+    } else {
+      df_adjustment_candidate <- bind_rows(
+        df_adjustment_candidate,
+        df_join
+      )
+    }
   }
 
+  # cleanup
+  rm(
+    adjustment_vector, adjustment_vector_lin, midpoints, b,
+    df_join
+  )
+
   # ___________________________________________________________________
-  # apply adjustments to the time series ----
+  # # join adjustment factors with the dataset  ----
+  # ___________________________________________________________________
+  # join via each break and percentile_original
+  data <- left_join(
+    data,
+    df_adjustment_candidate,
+    by = c("break_steps", "percentile_original")
+  )
+
+  # ___________________________________________________________________
+  # apply adjustments ----
   # ___________________________________________________________________
   data %<>%
     mutate(
+      # apply adjustment factor to the original time series
       snow_depth_homogenized = snow_depth_orig * adjustment_factor,
-      # add original time series after the break
+      # and add original time series after the break
       snow_depth_homogenized = if_else(
         break_steps == "A",
         snow_depth_orig,
@@ -310,9 +377,10 @@ for (i in seq_along(candidate_stations)) {
     )
 
   # ___________________________________________________________________
-  # reset 0-values ----
+  # restore 0-values ----
   # ___________________________________________________________________
-  # reset values that where 0 prior the homogenization to 0
+  # restore values that where 0 prior the homogenization to 0,
+  # so they are not influenced by the adjustment and no snow days are lost or created
   data$snow_depth_orig[remember_zero_orig] <- 0
   data$snow_depth_homogenized[remember_zero_orig] <- 0
   data$snow_depth_reference[remember_zero_reference] <- 0
@@ -339,4 +407,10 @@ HS_homogenized |>
 HS_homogenized |>
   save(
     file = "homogenization/data/03_homogenized/HS_homogenized.RData"
+  )
+
+# export percentile_check-file (how many unique years and observations per break)
+percentile_export |>
+  write_csv(
+    file = "homogenization/data/03_homogenized/percentile_check.csv"
   )

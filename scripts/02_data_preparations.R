@@ -3,7 +3,7 @@
 # interpQM homogenization of snow depth data
 # 01_data preparation ----
 # Author: Gernot Resch
-# Date: 29.02.2024
+# Date: 29.04.2024
 # ___________________________________________________________________
 # ___________________________________________________________________
 
@@ -36,7 +36,9 @@ interquantile_subset %<>%
   # select all but the last element of the whole vector
   tail(-1) %<>%
   # and multiply by 100 to get percentage values
-  { . * 100 } %<>%
+  {
+    . * 100
+  } %<>%
   # sort it to avoid errors
   sort()
 
@@ -49,6 +51,7 @@ interquantile_subset |>
 # load stations to be homogenized ----
 # ___________________________________________________________________
 
+# stations that get a calculated network
 candidate_stations <- read_csv(
   "homogenization/data/01_original/candidate_stations.csv",
   show_col_types = FALSE,
@@ -62,7 +65,18 @@ candidate_stations <- read_csv(
   # turn into vector
   pull(id_candidate)
 
-
+# stations that get a manual network
+candidate_stations_manual <- read_csv(
+  "homogenization/data/01_original/candidate_stations_manual.csv",
+  show_col_types = FALSE,
+) |>
+  # make sure its character values
+  mutate(
+    id_candidate = as.character(id_candidate),
+    id_reference = as.character(id_reference)
+  ) |>
+  # make sure there are no double-entries
+  distinct_all()
 # ___________________________________________________________________
 # Load metadata ----
 # ___________________________________________________________________
@@ -163,7 +177,7 @@ HS <- HS |>
   mutate(
     month = month(date),
     year = year(date),
-    hyear = if_else(month <= 9, year - 1, year) |> 
+    hyear = if_else(month <= 9, year - 1, year) |>
       as.integer()
   ) |>
   # get rid of month and year, because they are not needed anymore
@@ -171,7 +185,7 @@ HS <- HS |>
   # sort output by id and date
   arrange(id, date) |>
   # turn into tibble
-  as_tibble() 
+  as_tibble()
 
 # export correct snowdepth file to disk
 HS |>
@@ -352,7 +366,6 @@ for (i in seq_along(network_builder)) {
   network_builder[[i]] <- network
 }
 
-
 # change to long-format
 network_builder %<>%
   bind_rows()
@@ -363,7 +376,6 @@ network_builder |>
 
 network_builder |>
   write_csv(file = "homogenization/data/02_processed/network_builder.csv")
-
 
 # get time when script has finished running
 end_time <- Sys.time()
@@ -393,9 +405,11 @@ network_size |>
 
 # ___________________________________________________________________
 # prepare breakpoint-file ----
+# make sure there are no double-entries,
+# and all stations are homogenizable
 # ___________________________________________________________________
 
-# load breakpoint-data
+# load the provided breakpoint-data
 breakpoints <- read_csv(
   "homogenization/data/01_original/detected_breakpoints.csv",
   show_col_types = FALSE
@@ -415,25 +429,42 @@ network_size <- read_csv(
   show_col_types = FALSE
 )
 
-# compare network_size with breakpoints
-# for checking, if there are stations that are not homogenizable
-stations_not_homogenizable <- anti_join(
-  network_size,
-  breakpoints,
-  by = "id_candidate"
+# join calculated networks with manual reference-file
+# to get all stations that can be homogenized
+stations_homogenizable <- c(
+  network_size$id_candidate,
+  candidate_stations_manual$id_candidate
 ) |>
-  select(id_candidate)
-
-# export stations that are not homogenizable
-stations_not_homogenizable |>
-  write_csv(file = "homogenization/data/02_processed/stations_not_homogenizable.csv")
+  unique()
 
 # get rid of non-homogenizable stations in the breakpoint-file
 breakpoints %<>%
-  filter(id_candidate %in% network_size$id_candidate) |>
+  filter(id_candidate %in% stations_homogenizable) |>
   # get rid of possible double-entries
   distinct_all()
+
+# ___________________________________________________________________
+# export the corrected breakpoint file ----
+# ___________________________________________________________________
 
 # export cleaned breakpoint-file
 breakpoints |>
   write_csv(file = "homogenization/data/02_processed/breakpoints.csv")
+
+
+# ___________________________________________________________________
+# export non-homogenizable stations ----
+# ___________________________________________________________________
+
+# compare network_size with breakpoints
+# for checking, if there are stations that are not homogenizable
+# stations_not_homogenizable <- anti_join(
+#   network_size,
+#   breakpoints,
+#   by = "id_candidate"
+# ) |>
+#   select(id_candidate)
+#
+# # export stations that are not homogenizable
+# stations_not_homogenizable |>
+#   write_csv(file = "homogenization/data/02_processed/stations_not_homogenizable.csv")

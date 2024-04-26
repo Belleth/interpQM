@@ -31,7 +31,7 @@ load("homogenization/data/02_processed/HS.RData")
 # ___________________________________________________________________
 # ___________________________________________________________________
 
-# list of all candidate stations with already networks
+# list of all candidate stations with networks
 candidate_stations <- network_builder |>
   pull(id_candidate) |>
   unique() |>
@@ -132,9 +132,9 @@ rm(
 # (in case there are any)
 # ___________________________________________________________________
 
-if (file.exists("homogenization/data/01_original/reference_stations_manual.csv")) {
+if (file.exists("homogenization/data/01_original/candidate_stations_manual.csv")) {
   reference_stations_manual <- read_csv(
-    "homogenization/data/01_original/reference_stations_manual.csv",
+    "homogenization/data/01_original/candidate_stations_manual.csv",
     show_col_types = FALSE
   ) |>
     # make sure its character values
@@ -151,8 +151,11 @@ if (file.exists("homogenization/data/01_original/reference_stations_manual.csv")
 
 # add manual reference stations to HS_reference
 HS_manual <- HS |>
+  # filter for manual reference stations
   filter(id %in% reference_stations_manual$id_reference) |>
+  # rename it so its more clear whats in there
   rename(snow_depth_reference = snow_depth_orig) |>
+  # add id-column
   left_join(
     reference_stations_manual,
     by = c("id" = "id_reference")
