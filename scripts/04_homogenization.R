@@ -399,6 +399,28 @@ for (i in seq_along(candidate_stations)) {
 }
 
 # ___________________________________________________________________
+# Get rid of NAs before first measurement ----
+# ___________________________________________________________________
+meta <- read_csv(
+  file = "homogenization/data/02_processed/meta.csv",
+  show_col_types = FALSE
+) |>
+  filter(id %in% HS_homogenized$id_candidate) |>
+  select(
+    id_candidate = id,
+    begin_observations
+  )
+
+HS_homogenized <- left_join(
+  HS_homogenized,
+  meta,
+  by = "id_candidate"
+) |> 
+  group_by(id_candidate) |>
+  filter(date >= begin_observations) |> 
+  ungroup()
+
+# ___________________________________________________________________
 # save homogenized data to disk----
 # ___________________________________________________________________
 HS_homogenized |>
