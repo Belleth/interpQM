@@ -20,7 +20,7 @@ source("scripts/functions.R")
 source("homogenization/config.ini")
 
 # load pre-calculated network_builder
-load("homogenization/data/02_processed/network_builder.rda")
+load("homogenization/data/02_processed/network_builder.csv")
 
 # load snow depth dataset
 load("homogenization/data/02_processed/HS.RData")
