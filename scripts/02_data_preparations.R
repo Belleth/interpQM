@@ -65,9 +65,9 @@ candidate_stations <- read_csv(
   # turn into vector
   pull(id_candidate)
 
-# stations that get a manual network
-candidate_stations_manual <- read_csv(
-  "homogenization/data/01_original/candidate_stations_manual.csv",
+# stations that get a single manually selected reference station
+candidate_stations_single_reference <- read_csv(
+  "homogenization/data/01_original/candidate_stations_single_reference.csv",
   show_col_types = FALSE,
 ) |>
   # make sure its character values
@@ -433,7 +433,7 @@ network_size <- read_csv(
 # to get all stations that can be homogenized
 stations_homogenizable <- c(
   network_size$id_candidate,
-  candidate_stations_manual$id_candidate
+  candidate_stations_single_reference$id_candidate
 ) |>
   unique()
 

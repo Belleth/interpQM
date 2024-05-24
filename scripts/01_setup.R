@@ -62,7 +62,7 @@ if (file.exists("homogenization")) {
 # ___________________________________________________________________
 
 create_empty_text_file("homogenization/data/01_original/candidate_stations.csv")
-create_empty_text_file("homogenization/data/01_original/candidate_stations_manual.csv")
+create_empty_text_file("homogenization/data/01_original/candidate_stations_single_reference.csv")
 create_empty_text_file("homogenization/data/01_original/detected_breakpoints.csv")
 create_empty_text_file("homogenization/data/01_original/meta.csv")
 

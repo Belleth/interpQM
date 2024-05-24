@@ -132,9 +132,9 @@ rm(
 # (in case there are any)
 # ___________________________________________________________________
 
-if (file.exists("homogenization/data/01_original/candidate_stations_manual.csv")) {
+if (file.exists("homogenization/data/01_original/candidate_stations_single_reference.csv")) {
   reference_stations_manual <- read_csv(
-    "homogenization/data/01_original/candidate_stations_manual.csv",
+    "homogenization/data/01_original/candidate_stations_single_reference.csv",
     show_col_types = FALSE
   ) |>
     # make sure its character values
