@@ -14,4 +14,4 @@ https://tc.copernicus.org/articles/17/653/2023/
 Here you can find a dataset of randomly selected stations from the Austrian-Swiss domain: https://drive.google.com/file/d/1CJyCfZuP6kMB2taI597fBidKeGXVQk1T/view?usp=share_link. Put it to "data/01_original". It also shows how the data should be organized.
 
 ## Manual reference stations
-If you want to manually select a reference station, please write in 
+If you want to manually select a reference station, add it to data/02_processed/network_builder.csv 
