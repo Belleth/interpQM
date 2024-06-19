@@ -20,7 +20,7 @@ source("scripts/functions.R")
 source("homogenization/config.ini")
 
 # load pre-calculated network_builder
-load("homogenization/data/02_processed/network_builder.csv")
+load("homogenization/data/02_processed/network_builder.rda")
 
 # load snow depth dataset
 load("homogenization/data/02_processed/HS.RData")
@@ -49,35 +49,36 @@ for (i in seq_along(candidate_stations)) {
   network <- network_builder |>
     filter(id_candidate == candidate_station)
 
-  # ___________________________________________________________________
-  # calculate weighted mean ----
-  # ___________________________________________________________________
-
   # calculate weights for every reference station using the correlation
-  weighted_mean <- if (correlation_weight == "linear") {
-    round(
-      norm_min_max(network$correlation) * 100
-    )
-  } else if (correlation_weight == "exponential") {
-    round(
-      norm_min_max(network$correlation) * 10
-    )^2
+  if (correlation_weight == "linear") {
+    network %<>%
+      mutate(weight = round(
+        norm_min_max(network$correlation) * 100
+      ))
   }
 
-  # combine id_candidate and corresponding weights
-  weight <- tibble(
-    id_candidate = network$id_reference,
-    weight = weighted_mean
-  )
+  if (correlation_weight == "exponential") {
+    network %<>%
+      mutate(
+        weight = round(
+          norm_min_max(network$correlation) * 10
+        )^2
+      )
+  }
 
-  # create reference-dataset
+  # ___________________________________________________________________
+  # # create reference-dataset ----
+  # ___________________________________________________________________
+
+  # filter for stations contained in network
   HS_reference <- HS |>
     # filter for reference stations
     filter(id %in% network$id_reference) |>
+    rename(id_reference = id) |>
     # add weights
     left_join(
-      weight,
-      by = c("id" = "id_candidate")
+      select(network, id_reference, weight),
+      by = "id_reference"
     )
 
   # calculate weighted mean for each day
@@ -86,7 +87,7 @@ for (i in seq_along(candidate_stations)) {
     summarise(
       snow_depth_weighted = weighted.mean(
         snow_depth_orig,
-        w = weight,
+        weight,
         na.rm = T
       )
     )
@@ -116,15 +117,22 @@ for (i in seq_along(candidate_stations)) {
   }
 }
 
-# rename it so its more clear whats in there
+# rename it so its more clear whats in there and add hydrological year
 HS_reference <- HS_reference_export |>
-  as_tibble()
+  mutate(
+    month = month(date),
+    year = year(date),
+    hyear = if_else(month <= 9, year - 1, year) |>
+      as.integer()
+  ) |>
+  # get rid of month and year, because they are not needed anymore
+  select(-month, -year)
 
 # cleanup
 rm(
   HS_reference_weighted_export, HS_reference_export,
   HS_reference_export_to_add, HS_reference_weighted,
-  i, candidate_station, network, weighted_mean, weight
+  i, candidate_station, network
 )
 
 # ___________________________________________________________________
@@ -132,9 +140,9 @@ rm(
 # (in case there are any)
 # ___________________________________________________________________
 
-if (file.exists("homogenization/data/01_original/candidate_stations_single_reference.csv")) {
-  reference_stations_manual <- read_csv(
-    "homogenization/data/01_original/candidate_stations_single_reference.csv",
+if (file.exists("homogenization/data/01_original/candidate_stations_single.csv")) {
+  reference_stations_single <- read_csv(
+    "homogenization/data/01_original/candidate_stations_single.csv",
     show_col_types = FALSE
   ) |>
     # make sure its character values
@@ -150,27 +158,30 @@ if (file.exists("homogenization/data/01_original/candidate_stations_single_refer
 }
 
 # add manual reference stations to HS_reference
-HS_manual <- HS |>
+HS_single <- HS |>
   # filter for manual reference stations
-  filter(id %in% reference_stations_manual$id_reference) |>
+  filter(id %in% reference_stations_single$id_reference) |>
   # rename it so its more clear whats in there
   rename(snow_depth_reference = snow_depth_orig) |>
   # add id-column
   left_join(
-    reference_stations_manual,
+    reference_stations_single,
     by = c("id" = "id_reference")
   ) |>
   select(-id)
 
 # combine HS_reference and HS_reference
-HS_reference <- bind_rows(
-  HS_reference, HS_manual
-)
+if (nrow(HS_single) > 0) {
+  HS_reference <- bind_rows(
+    HS_reference, HS_single
+  )
+}
 
-# change possibly non-integer to integer
+
+# change possibly non-numeric to numeric
 HS_reference %<>%
   mutate(
-    snow_depth_reference = as.integer(snow_depth_reference)
+    snow_depth_reference = as.numeric(snow_depth_reference)
   )
 
 # export

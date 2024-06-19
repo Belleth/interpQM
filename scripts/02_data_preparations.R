@@ -11,8 +11,8 @@ rm(list = ls())
 
 # load packages
 library(tidyverse)
-library(geosphere)
 library(magrittr)
+library(geosphere)
 
 # load functions
 source("scripts/functions.R")
@@ -46,12 +46,11 @@ interquantile_subset %<>%
 interquantile_subset |>
   save(file = "homogenization/data/02_processed/interquantile_subset.RData")
 
-
 # ___________________________________________________________________
 # load stations to be homogenized ----
 # ___________________________________________________________________
 
-# stations that get a calculated network
+# stations with a network calculated by interpQM
 candidate_stations <- read_csv(
   "homogenization/data/01_original/candidate_stations.csv",
   show_col_types = FALSE,
@@ -61,13 +60,13 @@ candidate_stations <- read_csv(
     id_candidate = as.character(id_candidate)
   ) |>
   # make sure there are no double-entries
-  distinct_all() |>
+  distinct() |>
   # turn into vector
   pull(id_candidate)
 
-# stations that get a single manually selected reference station
-candidate_stations_single_reference <- read_csv(
-  "homogenization/data/01_original/candidate_stations_single_reference.csv",
+# stations with a single manual selected reference station
+candidate_stations_single <- read_csv(
+  "homogenization/data/01_original/candidate_stations_single.csv",
   show_col_types = FALSE,
 ) |>
   # make sure its character values
@@ -76,7 +75,8 @@ candidate_stations_single_reference <- read_csv(
     id_reference = as.character(id_reference)
   ) |>
   # make sure there are no double-entries
-  distinct_all()
+  distinct()
+
 # ___________________________________________________________________
 # Load metadata ----
 # ___________________________________________________________________
@@ -89,7 +89,7 @@ meta <- read_csv(
 
 # make sure no double-entries exist in meta-file
 meta %<>%
-  distinct_all()
+  distinct()
 
 # ___________________________________________________________________
 # # load snow data ----
@@ -187,7 +187,7 @@ HS <- HS |>
   # turn into tibble
   as_tibble()
 
-# export correct snowdepth file to disk
+# export correct snow depth file to disk
 HS |>
   save(file = "homogenization/data/02_processed/HS.RData")
 
@@ -433,7 +433,7 @@ network_size <- read_csv(
 # to get all stations that can be homogenized
 stations_homogenizable <- c(
   network_size$id_candidate,
-  candidate_stations_single_reference$id_candidate
+  candidate_stations_single$id_candidate
 ) |>
   unique()
 
@@ -441,7 +441,7 @@ stations_homogenizable <- c(
 breakpoints %<>%
   filter(id_candidate %in% stations_homogenizable) |>
   # get rid of possible double-entries
-  distinct_all()
+  distinct()
 
 # ___________________________________________________________________
 # export the corrected breakpoint file ----

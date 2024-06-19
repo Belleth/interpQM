@@ -3,7 +3,6 @@
 # interpQM: Homogenization of snow depth data
 # 04_homogenization
 # Author: Gernot Resch
-# Date: 26.04.2024
 # ___________________________________________________________________
 # ___________________________________________________________________
 
@@ -165,12 +164,14 @@ for (i in seq_along(candidate_stations)) {
   # adapt the iqs-subset to the number of unique snow observations in percentile_check.
   # This is necessary, if there are less than 100 percentiles available.
 
-  # reset interquantile subset
+  # make interquantile subset smaller
   interquantile_subset <- interquantile_subset_import
   ntile_length <- 100
 
   if (unique_snow_minimum < 100) {
-    interquantile_subset <- floor((interquantile_subset / 100) * unique_snow_minimum)
+    interquantile_subset <- floor(
+      (interquantile_subset / 100) * unique_snow_minimum
+    )
     ntile_length <- unique_snow_minimum
   }
 
@@ -178,7 +179,6 @@ for (i in seq_along(candidate_stations)) {
   # calculate percentiles per time_step (breaks) ----
   # ___________________________________________________________________
 
-  # if (unique_snow_minimum >= 100) {
   data %<>%
     group_by(break_steps) %<>%
     mutate(
@@ -193,11 +193,16 @@ for (i in seq_along(candidate_stations)) {
         snow_depth_reference,
         ntile_length
       ),
-      iqs_original = iqs_subset_calculation(snow_depth_orig, interquantile_subset),
-      iqs_reference = iqs_subset_calculation(snow_depth_reference, interquantile_subset)
+      iqs_original = iqs_subset_calculation(
+        snow_depth_orig,
+        interquantile_subset
+      ),
+      iqs_reference = iqs_subset_calculation(
+        snow_depth_reference,
+        interquantile_subset
+      )
     ) %<>%
     ungroup()
-  # }
 
   # ___________________________________________________________________
   # calculate dataframe with values for adjustment calculation ----
@@ -415,10 +420,31 @@ HS_homogenized <- left_join(
   HS_homogenized,
   meta,
   by = "id_candidate"
-) |> 
+) |>
   group_by(id_candidate) |>
-  filter(date >= begin_observations) |> 
-  ungroup()
+  filter(date >= begin_observations) |>
+  ungroup() |> 
+  select(-begin_observations)
+
+# ___________________________________________________________________
+# organize dataframe ----
+# ___________________________________________________________________
+HS_homogenized %<>%
+  select(
+    id_candidate,
+    date,
+    hyear,
+    snow_depth_orig,
+    snow_depth_homogenized,
+    snow_depth_reference,
+    break_steps,
+    adjustment_factor,
+    percentile_original,
+    percentile_reference,
+    iqs_original,
+    iqs_reference
+  )
+
 
 # ___________________________________________________________________
 # save homogenized data to disk----

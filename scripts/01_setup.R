@@ -62,14 +62,26 @@ if (file.exists("homogenization")) {
 # ___________________________________________________________________
 
 create_empty_text_file("homogenization/data/01_original/candidate_stations.csv")
-create_empty_text_file("homogenization/data/01_original/candidate_stations_single_reference.csv")
+create_empty_text_file("homogenization/data/01_original/candidate_stations_single.csv")
 create_empty_text_file("homogenization/data/01_original/detected_breakpoints.csv")
 create_empty_text_file("homogenization/data/01_original/meta.csv")
+
+# ___________________________________________________________________
+# Create empty candidate_stations_single.ini ----
+# ___________________________________________________________________
+content <- "id_candidate, id_reference"
+
+# Write content to file
+writeLines(
+  content,
+  "homogenization/data/01_original/candidate_stations_single.csv"
+)
 
 
 # ___________________________________________________________________
 # Create config-file "config.ini" ----
 # ___________________________________________________________________
+
 content <- "########################################
 # Command-file for homogenization
 # +++++ reference methods:
