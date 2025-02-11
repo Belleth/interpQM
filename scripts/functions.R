@@ -90,7 +90,7 @@ norm_min_max <- function(x) {
 # calculates the interquantile subsets of a variable in a dataframe
 # ___________________________________________________________________
 iqs_subset_calculation <- function(data_vector, interquantile_subset) {
-  ntile <- ntile(data_vector, 100)
+  ntile <- percent_rank(data_vector) * 100
 
   result <- rep(NA, length(data_vector))
   for (i in seq_along(interquantile_subset)) {
