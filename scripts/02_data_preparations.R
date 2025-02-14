@@ -177,7 +177,11 @@ HS <- HS |>
   mutate(
     month = month(date),
     year = year(date),
-    hyear = if_else(month <= 9, year - 1, year) |>
+    hyear = if_else(
+      month > 9,
+      year + 1,
+      year
+    ) |>
       as.integer()
   ) |>
   # get rid of month and year, because they are not needed anymore
